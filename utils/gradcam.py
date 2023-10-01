@@ -10,60 +10,96 @@ from pytorch_grad_cam.utils.image import (
 )
 from pytorch_grad_cam.utils.model_targets import ClassifierOutputTarget
 from models.resnet import *
+import math
+import matplotlib.pyplot as plt
 
-def collect_misclassified_images(self, num_images):
-        misclassified_images = []
-        misclassified_true_labels = []
-        misclassified_predicted_labels = []
-        num_collected = 0
+def get_device():
+    use_cuda = torch.cuda.is_available()
+    device = torch.device("cuda:0" if use_cuda else "cpu")
+    return device
 
-        for batch in self.test_dataloader():
-            x, y = batch
-            y_hat = self.forward(x)
-            pred = y_hat.argmax(dim=1, keepdim=True)
-            misclassified_mask = pred.eq(y.view_as(pred)).squeeze()
-            misclassified_images.extend(x[~misclassified_mask].detach())
-            misclassified_true_labels.extend(y[~misclassified_mask].detach())
-            misclassified_predicted_labels.extend(pred[~misclassified_mask].detach())
+device = get_device()
+# -------------------- GradCam --------------------
 
-            num_collected += sum(~misclassified_mask)
+# Find 10 misclassified images, and show them as a 5x2 image matrix in 3 separately annotated images. 
 
-            if num_collected >= num_images:
-                break
+def get_misclassified_data(model,test_loader):
+    
+    # Prepare the model for evaluation
+    model.eval()
 
-        return misclassified_images[:num_images], misclassified_true_labels[:num_images], misclassified_predicted_labels[:num_images], len(misclassified_images)
+    # List for storing misclassified images
+    misclassified_data = []
 
+    # Reset the Gradients
+    with torch.no_grad():
+        # Extract images, labels in a batch
+        for data, target in test_loader:
+            # Move the data to device
+            data,target = data.to(device),target.to(device)
 
-def plot_grad_cam(model, target_layer, imgs_list, preprocess_args, **kwargs):
-    misclassified_images, true_labels, predicted_labels, num_misclassified = collect_misclassified_images(num_images)
-    count = 0
-    k = 0
-    misclassified_images_converted = list()
-    gradcam_images = list()
+            # Extract single batch of images, labels
+            for img,label in zip(data,target):
+                
+                # Add a batch dimension
+                img = img.unsqueeze(0)
+                # Get prediction
+                output = model(img)
+                # Convert output probabilities to predicted class through one-hot encoding
+                pred = output.argmax(dim=1, keepdim=True)
 
-    if target_layer == -2:
-        target_layer = self.convblock2_l1.cpu()
-    else:
-        target_layer = self.convblock3_l1.cpu()
-    rows, cols = int(len(imgs_list) / 5), 5
-    figure = plt.figure(figsize=(cols * 2, rows * 2))
+                # Compare prediction and true label
+                if pred.item() != label.item():
+                    misclassified_data.append((img, label, pred))
 
-    cam = GradCAM(model=model, target_layers=target_layer, use_cuda=torch.cuda.is_available())
-    cam.batch_size = 32
+    return misclassified_data
 
-    for i, img in enumerate(imgs_list):
-        rgb_img = np.float32(img) / 255
-        input_tensor = preprocess_image(rgb_img, **preprocess_args)
-
-        grayscale_cam = cam(input_tensor=input_tensor, targets=None, **kwargs)
+def display_gradcam_output(data: list,
+classes: list[str],
+inv_normalize: transforms.Normalize,
+model: 'DL Model',
+target_layers: list['model_layer'],
+targets=None,
+number_of_samples: int = 10,
+transparency: float = 0.60):
+    """
+    Function to visualize GradCam output on the data
+    :param data: List[Tuple(image, label)]
+    :param classes: Name of classes in the dataset
+    :param inv_normalize: Mean and Standard deviation values of the dataset
+    :param model: Model architecture
+    :param target_layers: Layers on which GradCam should be executed
+    :param targets: Classes to be focused on for GradCam
+    :param number_of_samples: Number of images to print
+    :param transparency: Weight of Normal image when mixed with activations
+    """
+    # Plot configuration
+    fig = plt.figure(figsize=(10, 10))
+    x_count = 5
+    y_count = 1 if number_of_samples <= 5 else math.floor(number_of_samples /
+    x_count)
+    # Create an object for GradCam
+    cam = GradCAM(model=model, target_layers=target_layers, use_cuda=True)
+    # Iterate over number of specified images
+    for i in range(number_of_samples):
+        plt.subplot(y_count, x_count, i + 1)
+        input_tensor = data[i][0]
+        # Get the activations of the layer for the images
+        grayscale_cam = cam(input_tensor=input_tensor, targets=targets)
         grayscale_cam = grayscale_cam[0, :]
-        cam_image = show_cam_on_image(rgb_img, grayscale_cam, use_rgb=True)
-        # cam_image is RGB encoded whereas "cv2.imwrite" requires BGR encoding.
-        cam_image = cv2.cvtColor(cam_image, cv2.COLOR_RGB2BGR)
-
-        figure.add_subplot(rows, cols, i + 1)  # adding sub plot
-        plt.axis("off")  # hiding the axis
-        plt.imshow(cam_image, cmap="rainbow")  # showing the plot
-
+        # Get back the original image
+        img = input_tensor.squeeze(0).to('cpu')
+        img = inv_normalize(img)
+        rgb_img = np.transpose(img, (1, 2, 0))
+        rgb_img = rgb_img.numpy()
+        # Mix the activations on the original image
+        visualization = show_cam_on_image(rgb_img, grayscale_cam, use_rgb=True,
+        image_weight=transparency)
+        # Display the images on the plot
+        plt.imshow(visualization)
+        plt.title(r"Correct: " + classes[data[i][1].item()] + '\n' + 'Output: ' +
+        classes[data[i][2].item()])
+        plt.xticks([])
+        plt.yticks([])
     plt.tight_layout()
-    plt.show()
+    plt.savefig('gradcam.png')
