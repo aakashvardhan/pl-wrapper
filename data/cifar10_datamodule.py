@@ -1,7 +1,7 @@
 from data.data_transform import *
 import albumentations as A
 import pytorch_lightning as pl
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader, Dataset, random_split
 from torchvision import datasets
 import os
 
@@ -56,6 +56,15 @@ class CIFAR10DataModule(pl.LightningDataModule):
         )
     
     def val_dataloader(self):
+        return DataLoader(
+            PyTorchDataset(root=self.hparams.data_dir, train=False, transform=self.test_transforms),
+            batch_size=BATCH_SIZE,
+            shuffle=False,
+            num_workers=NUM_WORKERS,
+            pin_memory=True,
+        )
+    
+    def test_dataloader(self):
         return DataLoader(
             PyTorchDataset(root=self.hparams.data_dir, train=False, transform=self.test_transforms),
             batch_size=BATCH_SIZE,

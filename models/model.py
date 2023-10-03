@@ -15,12 +15,17 @@ from models.resnet import *
 from torchsummary import summary
 from tqdm import tqdm
 # from data_transform import *
+from torch.optim.lr_scheduler import OneCycleLR
 device = get_device()
 class LitModel(pl.LightningModule):
-    def __init__(self, num_classes=10):
+    def __init__(self,BATCH_SIZE,best_lr,epochs=5, num_classes=10):
         super().__init__()
         self.model = ResNet18()
         self.num_classes = num_classes
+        # self.lr = lr
+        self.BATCH_SIZE = BATCH_SIZE
+        self.best_lr = best_lr
+        self.epochs = epochs
 
     def forward(self, x):
         return self.model(x)
@@ -56,7 +61,32 @@ class LitModel(pl.LightningModule):
         self.evaluate(batch, stage='test')
 
     def configure_optimizers(self):
-        return torch.optim.Adam(self.parameters(), lr=0.001)
+        LEARNING_RATE=0.03
+        optimizer = torch.optim.SGD(
+        self.model.parameters(),
+        lr=LEARNING_RATE,
+        momentum=0.9,
+        weight_decay=1e-4,
+        )
+
+        self.trainer.fit_loop.setup_data()
+        dataloader = self.trainer.train_dataloader
+
+        lr_scheduler = OneCycleLR(
+          optimizer,
+          max_lr=self.best_lr,
+          steps_per_epoch=len(dataloader),
+          epochs=self.epochs,
+          pct_start=5/24,
+          div_factor=100,
+          three_phase=False,
+          final_div_factor=100,
+          anneal_strategy='linear'
+        )
+
+        scheduler = {"scheduler": lr_scheduler, "interval" : "step"}
+
+        return [optimizer], [scheduler]
 
     def on_train_start(self):
         model_summary(self.model, input_size=(3, 32, 32))  # Assuming input size to be (3, 32, 32)
