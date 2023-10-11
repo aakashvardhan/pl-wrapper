@@ -42,7 +42,95 @@ PyTorch Lightning offers several advantages for deep learning development:
 ### Active Community
 - Large, contributing community and a range of pre-built components.
 
-## [Data](
+## [Data](https://github.com/aakashvardhan/pl-wrapper/tree/main/data)
+
+### [DataLoader](https://github.com/aakashvardhan/pl-wrapper/blob/main/data/cifar10_datamodule.py)
+
+#### Overview
+`CIFAR10DataModule` is a custom PyTorch Lightning DataModule for handling the CIFAR-10 dataset. It manages data loading and preprocessing.
+
+#### Key Features
+
+##### Hyperparameters
+- `data_dir`: Directory where CIFAR-10 dataset is stored.
+
+##### Properties
+- `num_classes`: Returns the number of classes in the CIFAR-10 dataset.
+- `class_names`: Returns the names of classes.
+
+#### Methods
+
+##### `prepare_data()`
+Downloads the CIFAR-10 dataset.
+
+##### `setup(stage=None)`
+Sets up the training and validation datasets.
+
+##### `train_dataloader()`
+Returns a DataLoader for the training set.
+
+##### `val_dataloader()`
+Returns a DataLoader for the validation set.
+
+##### `test_dataloader()`
+Returns a DataLoader for the test set.
+
+#### Example Usage
+```python
+from data import CIFAR10DataModule
+
+datamodule = CIFAR10DataModule(data_dir="./data")
+datamodule.prepare_data()
+datamodule.setup('fit')
+train_loader = datamodule.train_dataloader()
+```
+## [model.py](https://github.com/aakashvardhan/pl-wrapper/blob/main/models/model.py)
+
+### Overview
+`LitModel` is a PyTorch Lightning Module that wraps around a ResNet18 model for CIFAR-10 classification.
+
+### Initialization
+
+#### `__init__(BATCH_SIZE, best_lr, epochs=5, num_classes=10)`
+Initializes the model with the following parameters:
+- `BATCH_SIZE`: Batch size for training.
+- `best_lr`: Best learning rate discovered.
+- `epochs`: Number of training epochs (default is 5).
+- `num_classes`: Number of target classes (default is 10).
+
+### Methods
+
+#### `forward(x)`
+Runs forward pass on the input `x`.
+
+#### `training_step(batch, batch_idx)`
+Computes the training loss and accuracy and logs them.
+
+#### `evaluate(batch, stage=None)`
+Utility function for computing loss and accuracy during validation and testing.
+
+#### `validation_step(batch, batch_idx)`
+Computes the validation loss and accuracy and logs them.
+
+#### `test_step(batch, batch_idx)`
+Computes the test loss and accuracy and logs them.
+
+#### `configure_optimizers()`
+Configures the SGD optimizer and OneCycleLR scheduler.
+
+#### `on_train_start()`
+Prints a summary of the model architecture at the start of training.
+
+### Example Usage
+```python
+from models import LitModel
+
+model = LitModel(BATCH_SIZE=256, best_lr=0.03, epochs=5)
+trainer = pl.Trainer(max_epochs=5)
+trainer.fit(model)
+```
+
+
 
 
 
@@ -127,5 +215,14 @@ Estimated Total Size (MB): 53.89
 
 ```
 
+### Training & Testing logs
 
+```
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃        Test metric        ┃       DataLoader 0        ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│      test_acc_epoch       │    0.9350000023841858     │
+│      test_loss_epoch      │    0.22751745581626892    │
+└───────────────────────────┴───────────────────────────┘
+```
 
