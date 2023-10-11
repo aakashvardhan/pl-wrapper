@@ -215,7 +215,7 @@ Estimated Total Size (MB): 53.89
 
 ```
 
-### Training & Testing logs
+### Training & Evaluation Metrics
 
 ```
 ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
@@ -225,6 +225,7 @@ Estimated Total Size (MB): 53.89
 │      test_loss_epoch      │    0.22751745581626892    │
 └───────────────────────────┴───────────────────────────┘
 ```
+### Visualization
 
 #### Training Loss & Acc Graph
 
@@ -234,7 +235,15 @@ Estimated Total Size (MB): 53.89
 
 ![image](https://github.com/aakashvardhan/pl-wrapper/blob/main/train_test_loss_acc/test_graph.png)
 
-## 10 Misclassified Images with the use of GradCam
+#### 10 Misclassified Images with the use of GradCam
 
 ![image](https://github.com/aakashvardhan/pl-wrapper/blob/main/gradcam.png)
+
+### Contribution
+
+Feel free to contribute to this project by opening a Pull Request or an Issue.
+
+### License
+
+This project is licensed under the MIT License.
 
