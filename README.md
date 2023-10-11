@@ -226,3 +226,15 @@ Estimated Total Size (MB): 53.89
 └───────────────────────────┴───────────────────────────┘
 ```
 
+#### Training Loss & Acc Graph
+
+![image](https://github.com/aakashvardhan/pl-wrapper/blob/main/train_test_loss_acc/train_graph.png)
+
+#### Testing Loss & Acc Graph
+
+![image](https://github.com/aakashvardhan/pl-wrapper/blob/main/train_test_loss_acc/test_graph.png)
+
+## 10 Misclassified Images with the use of GradCam
+
+![image](https://github.com/aakashvardhan/pl-wrapper/blob/main/gradcam.png)
+
