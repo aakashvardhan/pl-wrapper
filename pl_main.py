@@ -44,7 +44,7 @@ def train_model(model,datamodule,epochs=30):
     # Initialize the Lightning Trainer
     trainer = Trainer(precision = 16,max_epochs=epochs,accelerator="auto",
         devices=1 if torch.cuda.is_available() else None,  # limiting got iPython runs
-        logger=CSVLogger(save_dir="logs/"),
+        logger=tb_logger,
         callbacks=[LearningRateMonitor(logging_interval="step"), TQDMProgressBar(refresh_rate=10)])
 
     trainer.fit(model, datamodule)
